@@ -13,6 +13,12 @@ class Vector {
         this.z = z;
     }
 
+    set(x = null, y = null, z = null) {
+        this.x = x === null ? this.x : x;
+        this.y = y === null ? this.y : y;
+        this.z = z === null ? this.z : z;
+    }
+
     static norm2(u) {
         if (u instanceof this) {
             return u.x * u.x + u.y * u.y + u.z * u.z;
@@ -87,6 +93,18 @@ class Vector {
         }
     }
 
+    imul(v) {
+        if (v instanceof this) {
+            this.x *= v.x;
+            this.y *= v.y;
+            this.z *= v.z;
+        } else if (typeof v === 'number') {
+            this.x *= v;
+            this.y *= v;
+            this.z *= v;
+        }
+    }
+
     static add(u, v) {
         if (u instanceof this && v instanceof this) {
             return new this(
@@ -110,6 +128,22 @@ class Vector {
             return u + v;
         } else {
             return undefined;
+        }
+    }
+
+    iadd(v) {
+        if (v instanceof Vector) {
+            this.x += v.x;
+            this.y += v.y;
+            this.z += v.z;
+            return;
+        } else if (typeof v === 'number') {
+            this.x += v;
+            this.y += v;
+            this.z += v;
+            return;
+        } else {
+            return;
         }
     }
 
@@ -139,6 +173,18 @@ class Vector {
         }
     }
 
+    isub(v) {
+        if (v instanceof this) {
+            this.x -= v.x;
+            this.y -= v.y;
+            this.z -= v.z;
+        } else if (typeof v === 'number') {
+            this.x -= v;
+            this.y -= v;
+            this.z -= v;
+        }
+    }
+
     static neg(u) {
         if (u instanceof this) {
             return new this(
@@ -151,6 +197,13 @@ class Vector {
         } else {
             return undefined;
         }
+    }
+
+    ineg() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return;
     }
 
     static div(u, v) {
@@ -179,9 +232,34 @@ class Vector {
         }
     }
 
+    idiv(v) {
+        if (v instanceof this) {
+            this.x /= v.x;
+            this.y /= v.y;
+            this.z /= v.z;
+        } else if (typeof v === 'number') {
+            this.x /= v;
+            this.y /= v;
+            this.z /= v;
+        }
+    }
+
     toString() {
         return `[${this.x}, ${this.y}, ${this.z}]`;
     }
+}
+
+// I/O Functions
+function loadJson(path, callback) {
+    var rawFile = new XMLHttpRequest();
+    rawFile.overrideMimeType("application/json");
+    rawFile.open("GET", path, true);
+    rawFile.onreadystatechange = function () {
+        if (rawFile.readyState === 4 && rawFile.status == "200") {
+            callback(JSON.parse(rawFile.responseText));
+        }
+    }
+    rawFile.send(null);
 }
 
 // Math Constants
@@ -189,6 +267,20 @@ const PI = Math.PI;
 const TWO_PI = 2.0 * Math.PI;
 
 // Math Functions
+function SIGN(A, B) {
+    // FORTRAN SIGN(A, B)
+    return (B >= 0.0) ? Math.abs(A) : -Math.abs(A);
+}
+
+function arg(x) {
+    if (typeof x === 'number') {
+        x %= TWO_PI;
+        return (x < 0.0) ? (x + TWO_PI) : x;
+    } else {
+        return undefined;
+    }
+}
+
 function degrees(x) {
     if (typeof x === 'number') {
         return x * (PI / 180.0);
@@ -204,6 +296,87 @@ const GM = Math.pow(GAU * YEAR, 2);
 
 const NTT = 100;
 
+class Element {
+    constructor(data) {
+        this.a = data.a;
+        this.e = data.e;
+        this.i = data.i;
+        this.n = data.n;
+        this.w = data.w;
+        this.m = data.m;
+        this.v = data.v;
+        this.name = data.name;
+
+        // Assert Data Consistency
+        this.verify();
+
+        // Position and Velocity
+        this.$x = new Vector(0.0, 0.0, 0.0);
+        this.$v = new Vector(0.0, 0.0, 0.0);
+
+        // Leaning / Inclination
+        this.p = 0.0; // ?       [SA]
+        this.q = 0.0; // ?       [SE]
+        this.l = 0.0; // Leaning [INCLI]
+        this.g = 0.0; // ?       [?]
+
+        this.alive = true;
+    }
+
+    frame() {
+        return {
+            q: this.q, // ?       [SA]
+            p: this.p, // ?       [SE]
+            l: this.l, // Leaning [INCLI]
+            c: this.c, // ?       [ON]
+            w: this.w, // ?       [W]
+            r: this.y, // ?       [AMED]
+        }
+    }
+
+    verify() {
+        if (typeof this.a !== 'number' || this.a <= 0.0) {
+            throw `Error: missing positive number for 'a' on element data.`
+        }
+
+        if (typeof this.e !== 'number' || this.e <= 0.0) {
+            throw `Error: missing positive number for 'e' on element data.`
+        }
+
+        if (typeof this.i !== 'number' || this.i < 0.0) {
+            throw `Error: missing non-negative number for 'i' on element data.`
+        }
+
+        if (typeof this.n !== 'number' || this.n <= 0.0) {
+            throw `Error: missing positive number for 'n' on element data.`
+        }
+
+        if (typeof this.w !== 'number' || this.w <= 0.0) {
+            throw `Error: missing positive number for 'w' on element data.`
+        }
+
+        if (typeof this.m !== 'number' || this.m <= 0.0) {
+            throw `Error: missing positive number for 'm' on element data.`
+        }
+
+        if (typeof this.v !== 'number' || this.v <= 0.0) {
+            throw `Error: missing positive number for 'v' on element data.`
+        }
+
+        if (typeof this.name !== 'string' && this.name !== null) {
+            throw `Error: missing string (or null) for 'name' on element data.`
+        } else if (this.name === null) {
+            this.name = '';
+        }
+    }
+
+    kill() {
+        this.alive = false;
+    }
+
+
+}
+
 class Orbe {
 
     constructor(data) {
@@ -213,12 +386,51 @@ class Orbe {
         this.lapse = data.lapse;
         this.elements = data.elements;
 
-        this.peorb_min = null;
+        // Assert Data Consistency
+        this.verify();
+
+        this.t_min = null;
 
         // Time Control Quantities
         this.dt = null;
         this.time = 0.0;
         this.step = 1E-5;
+
+        // Initialize Simulation
+        this.init();
+    }
+
+    static load(path) {
+        loadJson(path, (data) => {
+            new this(data);
+        });
+    }
+
+    verify() {
+        /*  Below, a few consistency tests.
+        **  See './orbeini.json' for an exemple on format patterns.
+        */
+
+        if (typeof this.mass !== 'number' || this.mass <= 0.0) {
+            throw `Error: missing positive number for 'mass'.`
+        }
+
+        if (this.span !== null && (typeof this.span !== 'number' || this.span == 0.0)) {
+            throw `Error: missing non-zero number (or 'null') for 'span'.`
+        }
+
+        if (typeof this.lapse !== 'number' || this.lapse <= 0.0) {
+            throw `Error: missing positive number for 'lapse'.`
+        }
+
+        if (!Array.isArray(this.elements)) {
+            throw `Error: missing array for 'elements'.`
+        } else {
+            for (let i = 0; i < data.elements.length; i++) {
+                // Cast Object to Element type.
+                this.elements[i] = new Element(this.elements[i]);
+            }
+        }
     }
 
     // Properties
@@ -227,97 +439,58 @@ class Orbe {
         return Math.pow(10.0, -n);
     }
 
+    TOL(n) {
+        return this.constructor.TOL(n);
+    }
+
     GM0() {
         return GM * this.mass;
     }
 
     STEP() {
-        // ! Time Step PEORBMIN/40 Aproximately
-        return this.peorb_min / 40.0;
+        // ! Time Step tMIN/40 Aproximately
+        return this.t_min / 40.0;
     }
 
     N() {
         return this.elements.length;
     }
 
-    // I/O
-    static read(data) {
-        /*
-        *  See './orbeini.json' for format patterns.
-        */
-
-        // Check data consistency
-        if ((!data instanceof Object)) {
-            throw `Error: 'data' must be an Object.`;
-        }
-
-        if (!('mass' in data) || typeof data.mass !== 'number' || data.mass <= 0.0) {
-            throw `Error: missing positive number for 'mass'.`
-        }
-
-        if (!('span' in data) || typeof data.span !== 'number' || data.span <= 0.0) {
-            throw `Error: missing positive number for 'span'.`
-        }
-
-        if (!('lapse' in data) || typeof data.lapse !== 'number' || data.lapse <= 0.0) {
-            throw `Error: missing positive number for 'lapse'.`
-        }
-            // ?                    ?
-            // ?                    ?
-            // ?                    ?
-            // Elements
-            // for (let i=0; i<this.N; i++) {
-            //     this.elements[i].i = i;
-            //     this.elements[i].w = degrees(this.elements[i].w);
-            //     this.elements[i].x_i = degrees(this.elements[i].x_i);
-            //     this.elements[i].x_n = degrees(this.elements[i].x_n);
-            //     this.elements[i].eme = degrees(this.elements[i].eme);
-            // }
-
-
-            let orbe = new this(data);
-        return null;
+    ALIVE() {
+        return this.elements.reduce((s, el) => (el.alive ? s + 1 : s), 0);
     }
 
     // Main routines
     init() {
-        for (let i = 0; i < this.N; i++) {
-            // Retrieve element
-            let element = this.elements[i];
-
-            // Flag for dynamic element removal
-            element.alive = true;
-
-            // Conversion from radians to degrees
-            element.w = degrees(element.w);
-            element.x_i = degrees(element.x_i);
-            element.x_n = degrees(element.x_n);
-            element.eme = degrees(element.eme);
+        for (let el of this.elements) {
             // ! Mean Motion
-            element.ene = Math.sqrt(GM * (this.mass + element.vama) / Math.pow(element.a, 3));
+            el.g = Math.sqrt(GM * (this.mass + el.v) / Math.pow(el.a, 3));
 
             // ! Minimum Orbital Period
-            element.peorb = TWO_PI / element.ene;
-            if (this.peorb_min === null) {
-                this.peorb_min = element.peorb;
+            el.t = TWO_PI / el.g;
+            if (this.t_min === null) {
+                this.t_min = el.t;
             } else {
-                this.peorb_min = Math.min(this.peorb_min, element.peorb);
+                this.t_min = Math.min(this.t_min, el.t);
             }
 
             // ! Perihelion Passage in Days
-            element.m = GM * element.vama;
+            el.m = GM * el.v;
 
             // ! Initial Position and Velocity
-            element.$x = null; // Position
-            element.$v = null; // Velocity
-            element.$f = null; // ????????
-            this.PositionAndVelocity(element);
+            el.$x = null; // Position
+            el.$v = null; // Velocity
+            el.$f = null; // ????????
+            this.PositionAndVelocity(el);
+        }
 
-            element.r = Vector.norm(element.$x);
+        // Initial step
+        for (let el of this.elements) {
+            this.ComputeElements(el);
         }
 
         // This part doesn't make any sense
-        for (let i = 0; i<7; i++) {
+        for (let i = 0; i < 7; i++) {
             if (this.step < this.STEP()) {
                 this.dt = this.step;
             }
@@ -329,39 +502,81 @@ class Orbe {
             }
             this.step *= 10.0;
         }
+
+        this.lapse = Math.floor(this.lapse / this.dt) * this.dt;
+
+        // ! Integrate Backwards
+        if (this.span < 0.0) this.dt = -this.dt;
     }
 
-    run() {
+    run(callback) {
         // Initialize parameters
         this.init();
+
+        if (typeof callback === 'function') {
+            const frames = this.render();
+
+            while (true) {
+                let frame = frames.next();
+                if (frame.done || !callback(frame.value)) break;
+            }
+        } else { // Run Local Output
+            throw 'NotImplementedError';
+        }
     }
 
     * render() {
-        // Initial step
-        for (let i = 0; i < this.N(); i++) {
-            this.ComputeElements(this.elements[i]);
+        /* A frame is intended to be a list of elements and their information.
+        **
+        */
+        var time = 0.0; // ? [TGRID]
+        var frame = 0;  // ? [CTIEMPO]
+        while (true) {
+            let t = frame * this.dt;
+
+            // Advance Integration
+            this.KeplerMotion();
+            this.Perturbations();
+            this.KeplerMotion();
+
+            if (Math.abs(time - SIGN(this.lapse, this.dt)) < this.TOL(5)) {
+                for (let el of this.elements) {
+                    if (el.alive) this.ComputeElements(el);
+                }
+                yield { frame: frame++, elements: this.elements.map((el) => (el.frame())) };
+                time = this.dt;
+                continue;
+            }
+            if (((this.span - t) * SIGN(1.0, this.dt) > 0.0)) {
+                time += this.dt;
+                continue;
+            } else {
+                break;
+            }
         }
     }
 
     // Subroutines
-    PositionAndVelocity(element) {
+    PositionAndVelocity(el) {
         /*
         **
         */
+        // SUBROUTINE POVE(a0,E0,XI0,  XN0,  W0, eme0, ene,POS,VEL)
+        // SUBROUTINE POVE( A, E,  I,ANODE,PERI,    M,   N,  X, XP)
 
-        let e = this.SolveKepler(element);
-        let f = 2.0 * Math.atan(Math.sqrt((1.0 + element.e) / (1.0 - element.e)) * Math.tan(e / 2.0));
+        let e = this.SolveKepler(el);
+        let f = 2.0 * Math.atan(Math.sqrt((1.0 + el.e) / (1.0 - el.e)) * Math.tan(e / 2.0));
 
-        let R = element.a * (1.0 - element.e * Math.cos(e));
-        let B = N_ *element.a / Math.sqrt(1.0 - element.e * element.e);
+        let R = el.a * (1.0 - el.e * Math.cos(e));
+        let B = el.v * el.a / Math.sqrt(1.0 - el.e * el.e);
 
-        let $c = new Vector(Math.cos(ANODE_), Math.cos(I_), Math.cos(PERI_));
-        let $s = new Vector(Math.sin(ANODE_), Math.sin(I_), Math.sin(PERI_));
+        let $c = new Vector(Math.cos(el.n), Math.cos(el.i), Math.cos(el.w));
+        let $s = new Vector(Math.sin(el.n), Math.sin(el.i), Math.sin(el.w));
 
         // VECTORS P AND Q
         let $p = new Vector(
-            $c.x * $c.z - $s.x * $c.y * S.z,
-            $s.x * $c.z + $c.x * $c.y * S.z,
+            $c.x * $c.z - $s.x * $c.y * $s.z,
+            $s.x * $c.z + $c.x * $c.y * $s.z,
             $s.y * $s.z,
         )
         let $q = new Vector(
@@ -372,94 +587,77 @@ class Orbe {
 
         // Coefficients
         let [a, b] = [R * Math.cos(f), R * Math.sin(f)];
-        let [c, d] = [-B * Math.sin(f), B * (E_ + Math.cos(f))];
+        let [c, d] = [-B * Math.sin(f), B * (el.e + Math.cos(f))];
 
         // POSITION AND VELOCITY
-        element.$x = Vector.add(Vector.mul($p, a), Vector.mul($q, b));
-        element.$v = Vector.add(Vector.mul($p, c), Vector.mul($q, d));
+        el.$x = Vector.add(Vector.mul($p, a), Vector.mul($q, b));
+        el.$v = Vector.add(Vector.mul($p, c), Vector.mul($q, d));
     }
 
-    ComputeElements(element) {
+    ComputeElements(el) {
         /* SUBROUTINE PLANO
         ** Calculate Orbital Elements
         */
 
-        let rx = Vector.norm(element.$x);
-        let rv = Vector.norm(element.$v);
-
-        let $z = Vector.cross(element.$x, element.$v);
+        let $z = Vector.cross(el.$x, el.$v);
         let $w = new Vector($z.x, $z.y, 0.0);
 
-        let YN = Math.atan2(Vector.norm($w), $z.z);
-        let INCLI = YN
-        let ON = Math.atan2($z.x, -$z.y);
+        let s = Math.atan2(Vector.norm($w), $z.z);
+        let c = arg(Math.atan2($z.x, -$z.y));
 
-        if (ON < 0.0) {
-            ON += TWO_PI;
-        }
+        let l = s;
 
-        let CMU = GM0_ + $MPLA_[i_];
+        let GMM = this.GM0() + el.m;
 
         let $e = Vector.sub(
-            Vector.div(Vector.cross($v, $z), CMU),
-            Vector.div($x, rx)
+            Vector.div(Vector.cross(el.$v, $z), GMM),
+            Vector.unit(el.$x)
         );
 
-        let re = Vector.norm($e);
-
-        let SE = re
-        // IF INCLINATION IS 0 OR 180
-        // IN THIS CASE W IS THE LONGITUDE OF PERIHELION
-        if (Math.sin(YN) < this.TOL(12)) {
-            ON = 0.0;
-            W = Math.atan2($e.y, $e.x);
+        let w;
+        if (Math.sin(s) < this.TOL(12)) {
+            // ! If Inclination is 0 or 180 deg
+            // ! this case w is the longitude of perihelion
+            c = 0.0;
+            w = arg(Math.atan2($e.y, $e.x));
         } else {
-            let SEW = $e.z / Math.sin(YN);
-            let COW = $e.x * Math.cos(ON); + $e.y * Math.sin(ON);
-            W = Math.atan2(SEW, COW);
+            w = arg(Math.atan2(
+                $e.z / Math.sin(s),
+                $e.x * Math.cos(c) + $e.y * Math.sin(c)
+            ));
         }
 
-        if (W < 0.0) {
-            W += TWO_PI;
-        }
+        let u = 2.0 / Vector.norm(el.$x);
+        let v = Vector.norm2(el.$v) / GMM;
 
-        let A = 1.0 / ((2.0 / rx) - (rv / CMU));
+        let a = 1.0 / (u - v);
 
-        if (A < 0.0 || A > 1E+5) {
-            // WE ELIMINATE THE BODY PUTTING AN ABSURDE MASS
-            $MPLA_[i_] = 1.3E-30;
-            SA = 90000.0;
-            console.log(`BODY ELIMINATED: ${i_}`);
+        if (a < 0.0 || a > 1E+5) {
+            el.alive = false;
+            console.log(`Body Eliminated: ${el.name}`);
             return;
         }
 
-        let SA = A;
-        AE = 0.0;
+        el.p = a;
+        el.q = Vector.norm($e)
 
-        let AMED;
+        let y;
 
-        if (A > 0.0) {
-            SEE = Vector.div(Vector.dot($x, $v), Math.sqrt(A * CMU));
-            COE = 1.0 - rx / A;
-            AE = Math.atan2(SEE, COE);
-            if (AE < 0.0) {
-                AE += TWO_PI;
-            }
+        if (a > 0.0) {
+            let e = arg(Math.atan2(
+                Vector.dot(el.$x, el.$v) / Math.sqrt(a * GMM),
+                1.0 - Vector.norm(el.$x) / a
+            ));
+
             // Kepler's Equation
-            AMED = (AE - re * Math.sin(AE)) % TWO_PI;
-
-            if (AMED < 0.0) {
-                AMED += TWO_PI;
-            }
+            y = arg(e - Vector.norm($e) * Math.sin(e));
         }
 
 
-        let INCLI = degrees(INCLI);
-        let ON = degrees(ON);
-        let W = degrees(W);
-        let AMED = degrees(AMED);
-
-        return [INCLI, AMED, ON, SE, SA, W];
+        el.l = l; // ! [INCLI]
+        el.c = c; // ? [ON]
+        el.w = w; // ? [W]
+        el.y = y; // ? [AMED]
     }
 
     KeplerMotion() {
@@ -479,40 +677,42 @@ class Orbe {
             if (a < 0.0 || a > 1E+5) {
                 // Eliminate the body
                 e_i.alive = false;
-                console.log(`Body Eliminated: [${i}] ${e_i.name}`);
+                console.log(`Body Eliminated: ${e_i.name}`);
                 continue;
-            } 
+            }
 
             this.MovRel(e_i);
 
             // Update parameter 'a' ??
-            element.a = a;
+            //el.a = a;
         }
     }
 
     Perturbations() {
         /* ! Compute Mutual Perturbations in one step
         */
+        var e_i, e_j;
+
         for (let i = 0; i < this.N(); i++) {
             // Retrieve the i-th element
-            let e_i = this.elements[i];
+            e_i = this.elements[i];
 
             // If the i-th element was eliminated
             if (!e_i.alive) continue;
 
-            e_i.$f = Vector.mul(e_i.m / Math.pow(e_i.r, 3.0), e_i.$x);
+            e_i.$f = Vector.mul(e_i.m / Math.pow(Vector.norm(e_i.$x), 3.0), e_i.$x);
         }
 
         for (let i = 0; i < this.N(); i++) {
             // Retrieve the i-th element
-            let e_i = this.elements[i];
+            e_i = this.elements[i];
 
             // If the i-th element was eliminated.
             if (!e_i.alive) continue;
 
             for (let j = i + 1; j < this.N(); j++) {
                 // Retrieve the j-th element
-                let e_j = this.elements[j];
+                e_j = this.elements[j];
 
                 // If the j-th element was eliminated.
                 if (!e_j.alive) continue;
@@ -524,50 +724,52 @@ class Orbe {
                 let $p = Vector.sub(Vector.mul(e_i.m, $dx), e_i.$f);
                 let $q = Vector.sub(Vector.mul(-e_j.m, $dx), e_j.$f);
 
-                e_j.$v = Vector.add(e_j.$v, Vector.mul(this.dt, $p));
-                e_i.$v = Vector.add(e_i.$v, Vector.mul(this.dt, $q));
+                e_j.$v.iadd(Vector.mul(this.dt, $p));
+                e_i.$v.iadd(Vector.mul(this.dt, $q));
             }
         }
     }
 
-    SolveKepler(element) {
+    SolveKepler(el) {
         // Solve Kepler Equation
         // M = E - e * sin(E)
-        let m = element.m % TWO_PI;
-        let e_k, e = m;
+        var m, e, e_k;
+        m = arg(el.m);
+        e = m
         do {
             e_k = e;
 
             let s = Math.sin(e_k);
             let c = Math.cos(e_k);
 
-            let u = (e_k - element.e * s - m) / (1.0 - element.e * c);
+            let u = (e_k - el.e * s - m) / (1.0 - el.e * c);
             let v = e_k - u;
-            let w = v / (1 - u * element.e * s);
+            let w = v / (1 - u * el.e * s);
 
-            let e = (v + w) / 2.0;
+            e = (v + w) / 2.0;
         } while (Math.abs(e - e_k) > this.TOL(14));
 
         return e;
     }
 
-    MovRel(element) {
-        let GGM = this.GM0() + element.m;
+    MovRel(el) {
+        let GGM = this.GM0() + el.m;
 
-        let r = Vector.norm(element.$x);
+        let r = Vector.norm(el.$x);
 
         let u = 2.0 / r;
-        let v = Vector.norm2(element.$v) / GGM;
+        let v = Vector.norm2(el.$v) / GGM;
 
         let a = 1.0 / (u - v);
         let n = Math.sqrt(GGM / Math.pow(a, 3));
 
-        let s = Vector.dot(element.$x, element.$v) / (n * Math.pow(a, 2));
+        let s = Vector.dot(el.$x, el.$v) / (n * Math.pow(a, 2));
         let c = 1.0 - (r / a);
-        
-        element.e = s * s + c * c;
 
-        let [dx, s, c, fp] = this.KeplerRel(s, c, n);
+        el.e = s * s + c * c;
+
+        let dx, fp;
+        [dx, s, c, fp] = this.KeplerRel(s, c, n);
 
         let f = 1.0 + (a / r) * (c - 1.0);
         let g = this.dt + (s - dx) / n;
@@ -575,16 +777,15 @@ class Orbe {
         let F = -a * n * s / (r * fp);
         let G = 1.0 + (c - 1.0) / fp;
 
-        element.$x = Vector.add(
-            Vector.mul(element.$x, f),
-            Vector.mul(element.$v, g)
-            );
-        element.$v = Vector.add(
-            Vector.mul(element.$x, F),
-            Vector.mul(element.$v, G)
-            );
+        el.$x = Vector.add(
+            Vector.mul(el.$x, f),
+            Vector.mul(el.$v, g)
+        );
+        el.$v = Vector.add(
+            Vector.mul(el.$x, F),
+            Vector.mul(el.$v, G)
+        );
     }
-
 
     KeplerRel(s_, c_, n_) {
         // Solve Kepler Equation
@@ -609,5 +810,13 @@ class Orbe {
         } while (Math.abs(dx) > this.TOL(13));
 
         return [dx, s, c, fp[0]];
+    }
+
+    html(id) {
+        let element = document.getElementById(id);
+        element.innerHTML = `\
+        <p>Total Bodies: <b>${this.N()}</b> (<i>${this.ALIVE()} alive</i>)</p>
+        <p>Time Span: <b>${this.span}</b> years</p>
+        <p>Time Lapse: <b>${this.dt}</b> years</p>`
     }
 }

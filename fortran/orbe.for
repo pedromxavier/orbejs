@@ -2,143 +2,149 @@ C PROGRAM ORBE ver 3
 C TABARE GALLARDO September 2016
 C BASED ON EVORB (BRUNINI AND GALLARDO)
 C www.astronomia.edu.uy/orbe
-	IMPLICIT REAL*8(A-H,O-Z)
-	REAL*8 MPLA
-	CHARACTER*50 FILEIN,FILEOU,ACOMM
-	parameter (NTT=100)
-	DIMENSION XPLA(NTT,3),VPLA(NTT,3)
-	DIMENSION APLA(NTT),EPLA(NTT)
-	DIMENSION MPLA(NTT),RPLA(NTT)
-	DIMENSION POS(3),VEL(3)
-	COMMON/CTE/GM,GM0
+      IMPLICIT REAL*8(A-H,O-Z)
+      REAL*8 MPLA
+      CHARACTER*50 FILEIN,FILEOU,ACOMM
+      PARAMETER (NTT=100)
+      DIMENSION XPLA(NTT,3),VPLA(NTT,3)
+      DIMENSION APLA(NTT),EPLA(NTT)
+      DIMENSION MPLA(NTT),RPLA(NTT)
+      DIMENSION POS(3),VEL(3)
+      COMMON/CTE/GM,GM0
 C DATA INPUT
-	FILEIN='orbeini.dat'
+      FILEIN='orbeini.dat'
 C OUTPUT
-	FILEOU='orbeout.dat'
+      FILEOU='orbeout.dat'
 C UNIT TIME = JULIAN YEAR
 C UNIT MASS = SOLAR MASS
 C UNIT DISTANCE = AU
-	PI=4.D0*DATAN(1.D0)
-	DOSPI=2.D0*PI
-	GAU=0.01720209895D0
-	ANIO=365.25D0
-	GM=(GAU*ANIO)**2
-	GAR=PI/180.D0
+      PI=4.D0*DATAN(1.D0)
+      DOSPI=2.D0*PI
+      GAU=0.01720209895D0
+      ANIO=365.25D0
+      GM=(GAU*ANIO)**2
+      GAR=PI/180.D0
 C T INITIAL = 0
-	CTIEMPO=0.D0
+      CTIEMPO=0.D0
 C      TINIC=0.D0
-	T=0.D0
-	WRITE(*,*)'O---------------------------------------------------O'
-	WRITE(*,*)'|                       ORBE 3                      |'
-	WRITE(*,*)'|              version September 2016               |'
-	WRITE(*,*)'|            www.astronomia.edu.uy/orbe             |'
-	WRITE(*,*)'O---------------------------------------------------O'
+      T=0.D0
+      WRITE(*,*)'O---------------------------------------------------O'
+      WRITE(*,*)'|                       ORBE 3                      |'
+      WRITE(*,*)'|              version September 2016               |'
+      WRITE(*,*)'|            www.astronomia.edu.uy/orbe             |'
+      WRITE(*,*)'O---------------------------------------------------O'
 C READ DATA
-	OPEN(2,FILE=FILEIN)
-	READ(2,1004) ACOMM
-	READ(2,*) CMASS    ! CENTRAL MASS
-	READ(2,1004)ACOMM
-	READ(2,*) TMAX         ! FINAL TIME IN YEARS
-	READ(2,1004)ACOMM
-	READ(2,*) TSAL         ! OUTPUT SNAPSHOTS
-	GM0=GM*CMASS
-	PEORBMIN=100000.0D0
-	NPLA=0
-	READ(2,1004)ACOMM               ! ORBITAL ELEMENTS
-	DO 101 IU=1,100
-		READ(2,*,END=500)A0,E0,XI0,XN0,W0,EME0,VAMA
-		NPLA=NPLA+1
-		XI0=XI0*GAR
-		I=NPLA
-        EME0=EME0*GAR
-		XN0=XN0*GAR
-		W0=W0*GAR
+      OPEN(2,FILE=FILEIN)
+      READ(2,1004) ACOMM
+      READ(2,*) CMASS    ! CENTRAL MASS
+      READ(2,1004)ACOMM
+      READ(2,*) TMAX         ! FINAL TIME IN YEARS
+      READ(2,1004)ACOMM
+      READ(2,*) TSAL         ! OUTPUT SNAPSHOTS
+      GM0=GM*CMASS
+      PEORBMIN=100000.0D0
+      NPLA=0
+      READ(2,1004)ACOMM               ! ORBITAL ELEMENTS
+      DO 101 IU=1,100
+            READ(2,*,END=500)A0,E0,XI0,XN0,W0,EME0,VAMA
+	      NPLA=NPLA+1
+	      XI0=XI0*GAR
+	      I=NPLA
+            EME0=EME0*GAR
+	      XN0=XN0*GAR
+	      W0=W0*GAR
 C MEAN MOTION
-		ENE=DSQRT(GM*(CMASS+VAMA)/A0**3)
+	      ENE=DSQRT(GM*(CMASS+VAMA)/A0**3)
 C MINIMUM ORBITAL PERIOD
-        PEORB=DOSPI/ENE
-        IF (PEORB.LT.PEORBMIN) THEN
-          PEORBMIN=PEORB
-        ENDIF
+            PEORB=DOSPI/ENE
+            IF (PEORB.LT.PEORBMIN) THEN
+                  PEORBMIN=PEORB
+            ENDIF
 C PERIHELION PASSAGE IN DAYS
-        MPLA(I)=GM*VAMA
+            MPLA(I)=GM*VAMA
 C INITIAL POTITION AND VELOCITY
-		CALL POVE(a0,E0,XI0,XN0,W0,eme0,ene,POS,VEL)
-        RPLA(I)=0.D0
-		DO J=1,3
-	  		RPLA(I)=RPLA(I)+POS(J)**2
-	  		XPLA(I,J)=POS(J)
-	  		VPLA(I,J)=VEL(J)
-		ENDDO
-		RPLA(I)=DSQRT(RPLA(I))
+            // SUBROUTINE POVE(a0,E0,XI0,  XN0,  W0, eme0, ene,POS,VEL)
+            // SUBROUTINE POVE( A, E,  I,ANODE,PERI,    M,   N,  X, XP)
+	      CALL POVE(a0,E0,XI0,XN0,W0,eme0,ene,POS,VEL)
+            RPLA(I)=0.D0
+	      DO J=1,3
+	            RPLA(I)=RPLA(I)+POS(J)**2
+	            XPLA(I,J)=POS(J)
+	            VPLA(I,J)=VEL(J)
+            ENDDO
+	      RPLA(I)=DSQRT(RPLA(I))
 101   CONTINUE
 500   CLOSE(2)
 C SAVE ORBITAL ELEMENTS FOR T=0
-      	OPEN(1,FILE=FILEOU,STATUS='UNKNOWN',ACCESS='APPEND')
-      	DO KK=1,NPLA
-			CALL PLANO(XPLA,VPLA,KK,CLINA,DOSPI,GM0,MPLA,ON,W,AMED,SE,SA)
-			WRITE(1,1001)T,KK,SA,SE,CLINA,ON,W,AMED
-      	ENDDO
-      	CLOSE(1)
+      OPEN(1,FILE=FILEOU,STATUS='UNKNOWN',ACCESS='APPEND')
+      DO KK=1,NPLA
+	      CALL PLANO(XPLA,VPLA,KK,CLINA,DOSPI,GM0,MPLA,ON,W,AMED,SE,SA)
+	      WRITE(1,1001)T,KK,SA,SE,CLINA,ON,W,AMED
+      ENDDO
+      CLOSE(1)
 C TIME STEP PEORBMIN/40 APROX
-        PASO=PEORBMIN/40.D0
-        PAS1=0.00001D0
-        DO IU=1,7
-			IF (PASO.GT.PAS1) THEN
-				H=PAS1
-			ENDIF
-			IF (PASO.GT.PAS1*2.D0) THEN
-				H=PAS1*2.D0
-			ENDIF
-			IF (PASO.GT.PAS1*5.D0) THEN
-				H=PAS1*5.D0
-			ENDIF
-			PAS1=PAS1*10.D0
-      	ENDDO
+      PASO=PEORBMIN/40.D0
+      PAS1=0.00001D0
+      DO IU=1,7
+            IF (PASO.GT.PAS1) THEN
+                  H=PAS1
+            ENDIF
+            IF (PASO.GT.PAS1*2.D0) THEN
+                  H=PAS1*2.D0
+            ENDIF
+            IF (PASO.GT.PAS1*5.D0) THEN
+                  H=PAS1*5.D0
+            ENDIF
+            PAS1=PAS1*10.D0
+      ENDDO
 C TSAL MUST BE AN INTEGER NUMBER OF STEPS H
-      	TSAL=DNINT(TSAL/H)*H
-		WRITE(*,*)'BODIES: ',NPLA
-		WRITE(*,*)'FINAL TIME: ',TMAX
-		WRITE(*,*)'TIMESTEP: ',H
+      TSAL=DNINT(TSAL/H)*H
+      WRITE(*,*)'BODIES: ',NPLA
+      WRITE(*,*)'FINAL TIME: ',TMAX
+      WRITE(*,*)'TIMESTEP: ',H
 C TMAX NEGATIVE INTEGRATE BACKWARDS
-      	IF(TMAX.LT.0.) H=-H
-      		HK = 0.5D0*H
+      IF(TMAX.LT.0.) H=-H
+      
+      HK = 0.5D0*H
 200   TGRID=0.D0
 210   TGRID=TGRID+H
-      		CTIEMPO=CTIEMPO+1.D0
-      		T=CTIEMPO*H
-      		CALL MOVIKEP(NPLA,HK,XPLA,VPLA,RPLA,APLA,EPLA,MPLA)
-			CALL PERTURB(XPLA,VPLA,RPLA,NPLA,MPLA,H)
-			CALL MOVIKEP(NPLA,HK,XPLA,VPLA,RPLA,APLA,EPLA,MPLA)
-      		IF(DABS(TGRID-DSIGN(TSAL,H)).LT.1.D-05)THEN
-				OPEN(1,FILE=FILEOU,STATUS='UNKNOWN',ACCESS='APPEND')
-				NSURVIVORS=NPLA
-				DO 50 KK=1,NPLA
-C IF KK WAS ELIMINATED
-	  				IF(MPLA(KK).EQ.1.2345D-30) THEN
-            			NSURVIVORS=NSURVIVORS-1
-            			GOTO 50
-	  				ENDIF
-	  				CALL PLANO(XPLA,VPLA,KK,CLINA,DOSPI,GM0,MPLA,ON,W,AMED,SE,SA)
-	  				WRITE(1,1001)T,KK,SA,SE,CLINA,ON,W,AMED
-50    CONTINUE
-        			CLOSE(1)
-					WRITE(*,1012)T,NSURVIVORS
-        			GOTO 200
-      		ENDIF
-      		IF((TMAX-T)*DSIGN(1.D0,H).GT.0.)GOTO 210
+      CTIEMPO=CTIEMPO+1.D0
+      T=CTIEMPO*H
+      CALL MOVIKEP(NPLA,HK,XPLA,VPLA,RPLA,APLA,EPLA,MPLA)
+      CALL PERTURB(XPLA,VPLA,RPLA,NPLA,MPLA,H)
+      CALL MOVIKEP(NPLA,HK,XPLA,VPLA,RPLA,APLA,EPLA,MPLA)
+      IF (DABS(TGRID-DSIGN(TSAL,H)).LT.1.D-05) THEN
+	      OPEN(1,FILE=FILEOU,STATUS='UNKNOWN',ACCESS='APPEND')
+	      NSURVIVORS=NPLA
+
+	      DO 50 KK=1,NPLA
+C                 IF KK WAS ELIMINATED
+	            IF(MPLA(KK).EQ.1.2345D-30) THEN
+                        NSURVIVORS=NSURVIVORS-1
+                        GOTO 50
+	            ENDIF
+	            CALL PLANO(XPLA,VPLA,KK,CLINA,DOSPI,GM0,MPLA,ON,W,AMED,SE,SA)
+	            WRITE(1,1001)T,KK,SA,SE,CLINA,ON,W,AMED
+50          CONTINUE
+
+            CLOSE(1)
+            WRITE(*,1012)T,NSURVIVORS
+            GOTO 200
+      ENDIF
+      IF((TMAX-T)*DSIGN(1.D0,H).GT.0.) GOTO 210
+      
 1001  FORMAT(1P,E13.6,0P,I4,F13.6,F9.6,4F7.2)
 1004  FORMAT(A50)
 1012  FORMAT(F14.1,I8)
-		    STOP
-      		END
+      STOP
+      END
 C ========================================================================
 C ========================================================================
 C ADVANCE KEPLERIAN MOTION HALF STEP
       SUBROUTINE MOVIKEP(NPLA,H,XPLA,VPLA,RPLA,APLA,EPLA,MPLA)
       IMPLICIT REAL*8(A-H,O-Z)
       REAL*8 MPLA
-      parameter (NTT=100)
+      PARAMETER (NTT=100)
       DIMENSION XPLA(NTT,3),VPLA(NTT,3)
       DIMENSION APLA(NTT),EPLA(NTT)
       DIMENSION RPLA(NTT),MPLA(NTT)
@@ -182,7 +188,7 @@ C COMPUTE MUTUAL PERTURBATIONS IN ONE STEP
       SUBROUTINE PERTURB(XPLA,VPLA,RPLA,NPLA,MPLA,H)
       IMPLICIT REAL*8(A-H,O-Z)
       REAL*8 MPLA
-      parameter (NTT=100)
+      PARAMETER (NTT=100)
       DIMENSION XPLA(NTT,3),VPLA(NTT,3),RPLA(NTT)
       DIMENSION MPLA(NTT)
       DIMENSION FINDX(NTT),FINDY(NTT),FINDZ(NTT)
@@ -261,7 +267,7 @@ C CALCULATING ORBITAL ELEMENTS
       SUBROUTINE PLANO(XPLA,VPLA,I,INCLI,DOSPI,GM0,MPLA,ON,W,AMED,SE,SA)
       IMPLICIT REAL*8(A-H,O-Z)
       REAL*8 INCLI,MPLA
-      parameter (NTT=100)
+      PARAMETER (NTT=100)
       DIMENSION XPLA(NTT,3),VPLA(NTT,3),MPLA(NTT)
       ERR=1.D-12
       XX=XPLA(I,1)
@@ -333,7 +339,7 @@ C WE ELIMINATE THE BODY PUTTING AN ABSURDE MASS
 C ========================================================================
 C ========================================================================
 C COMPUTE INITIAL POSITION AND VELOCITY
-      SUBROUTINE POVE(A,E,I,ANODE,PERI,M,N,X,XP)
+SUBROUTINE POVE(A,E,I,ANODE,PERI,M,N,X,XP)
       IMPLICIT REAL*8(A-H,O-Z)
       REAL*8 I,M,N
       DIMENSION X(3),XP(3)
@@ -367,7 +373,7 @@ C POSITION AND VELOCITY
       XP(2)=P2*XP1+Q2*XP2
       XP(3)=P3*XP1+Q3*XP2
       RETURN
-      END
+END
 C ========================================================================
 C ========================================================================
       SUBROUTINE MOVREL(GM0,DT,X,V,R,E,ALPM)
@@ -407,7 +413,8 @@ C SOLVING KEPLER EQUATION FOR DT
       SUBROUTINE KEPREL(ES,EC,EN,DT,X,C,S,FP)
       IMPLICIT REAL*8(A-H,O-Z)
       TOL=1.D-13
-      X=EN*DT
+      ENDT=EN*DT
+      X=ENDT
 100   S=DSIN(X)
       C=DCOS(X)
       F=X-EC*S+ES*(1.D0-C)-ENDT
