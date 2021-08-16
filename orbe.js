@@ -467,18 +467,20 @@ class Orbe {
 
         var $dx, $p, $q;
 
-        $dx = new THREE.Vector3(0.0, 0.0, 0.0);
-        $p = new THREE.Vector3(0.0, 0.0, 0.0);
-        $p = new THREE.Vector3(0.0, 0.0, 0.0);
+        $dx = new THREE.Vector3();
+        $p = new THREE.Vector3();
+        $p = new THREE.Vector3();
 
-        for (let i = 0; i < this.N(); i++) {
+        var N = this.N();
+
+        for (let i = 0; i < N; i++) {
             // Retrieve the i-th element
             body_i = this.bodies[i];
 
             // If the i-th element was eliminated.
             if (!body_i.alive) continue;
 
-            for (let j = i + 1; j < this.N(); j++) {
+            for (let j = i + 1; j < N; j++) {
                 // Retrieve the j-th element
                 body_j = this.bodies[j];
 
@@ -505,15 +507,19 @@ class Orbe {
     }
 
     KeplerMotion() {
-        // ! Advance Keplerian Motion Half Step
+        // * Advance Keplerian Motion Half Step
+        // ! Orbital Elements
+        var a;
+
+        var dt;
+
+        dt = 0.5 * this.dt;
+
         for (let body of this.bodies) {
             // If the i-th element was eliminated
             if (!body.alive) continue;
 
-            let u = 2.0 / Vector.norm(body.$x);
-            let v = Vector.norm2(body.$v) / (this.GM0 + body.m);
-
-            let a = 1.0 / (u - v);
+            a = 1.0 / ((2.0 / body.$x.length()) - (body.$v.lengthSq() / (this.GM0 + body.m)));
 
             if (a < 0.0 || a > 1E+5) {
                 // Eliminate the body
@@ -522,10 +528,10 @@ class Orbe {
                 continue;
             }
 
-            this.MovRel(body);
+            // this.MovRel(body);
 
-            // ?? Update parameter 'a'
-            // body.a = a;
+            // ! Update parameter 'a'
+            body.a = a;
         }
     }
 
