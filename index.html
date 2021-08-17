@@ -18,14 +18,24 @@
 </head>
 
 <body>
+    <nav>
+        <ul>
+            <a href="https://pedromxavier.github.io/orbejs/">Home</a>
+        </ul>
+        <ul>
+            <a href="https://github.com/pedromxavier/orbejs/">GitHub</a>
+            <a href="#examples">Examples</a>
+        </ul>
+    </nav>
+
     <h1>Orbe.js<img style="vertical-align:middle;" src="./favicon.ico"></h1>
 
-    This project is a JavaScript implementation of <a href="http://www.astronomia.edu.uy/orbe/">ORBE</a>, an Orbital
-    Integrator originally written in FORTRAN.
+    <p>This project is a JavaScript implementation of <a href="http://www.astronomia.edu.uy/orbe/">ORBE</a>, an Orbital Integrator originally written in FORTRAN.</p>
 
     <h2>Getting Started</h2>
 
-    Installing Orbe.js is very simple. All you have to do is copying the <b>Orbe.js</b> file to your working folder.
+    <h3>Installation</h3>
+    <p>Installing Orbe.js is very simple. All you have to do is copying the <b>Orbe.js</b> file to your working folder. It is available in the <b>/src</b> folder at the project's repository.</p>
 
     <pre>
         <code class="language-html">
@@ -33,14 +43,122 @@
 
 &lt;script type="text/javascript" src="./Orbe.js"&gt;&lt;/script&gt;
 &lt;script type="text/javascript"&gt;
-    // Orbe.load(JSON_PATH, ELEMENT_ID);
-    Orbe.load('orbedata.json', 'orbe');
+    Orbe.load(path='./orbeini.json', id='orbe');
 &lt;/script&gt;
         </code>
     </pre>
 
-    <div id="orbe">
+    <h3>Data Patterns</h3>
+    <pre>
+        <code class="language-javascript">
+var data = {
+    "mass": 1.0,
+    "span": 1000000.0,
+    "lapse": 1000.0,
+    "bodies": [
+        {
+            "a": 0.387098,
+            "e": 0.205640,
+            "i": 7.00,
+            "W": 48.32,
+            "w": 29.14,
+            "M": 143.52,
+            "m": 0.1660136E-06,
+            "name": "Mercury"
+        },
+        {
+            "a": 0.723329,
+            "e": 0.006759,
+            "i": 3.39,
+            "W": 76.66,
+            "w": 54.53,
+            "M": 24.82,
+            "m": 0.2447838E-05,
+            "name": "Venus"
+        },
+        {
+            "a": 0.999988,
+            "e": 0.016717,
+            "i": 0.00,
+            "W": 175.41,
+            "w": 287.62,
+            "M": 257.61,
+            "m": 0.3040432E-05,
+            "name": "Earth"
+        },
+        {
+            "a": 1.523674,
+            "e": 0.093437,
+            "i": 1.85,
+            "W": 49.54,
+            "w": 286.56,
+            "M": 226.11,
+            "m": 0.3227155E-06,
+            "name": "Mars"
+        },
+        {
+            "a": 5.202040,
+            "e": 0.048933,
+            "i": 1.30,
+            "W": 100.51,
+            "w": 274.18,
+            "M": 223.70,
+            "m": 0.9547919E-03,
+            "name": "Jupiter"
+        },
+        {
+            "a": 9.551249,
+            "e": 0.054508,
+            "i": 2.49,
+            "W": 113.63,
+            "w": 340.06,
+            "M": 38.63,
+            "m": 0.2858859E-03,
+            "name": "Saturn"
+        },
+        {
+            "a": 19.176263,
+            "e": 0.048094,
+            "i": 0.77,
+            "W": 73.96,
+            "w": 98.52,
+            "M": 169.39,
+            "m": 0.4366244E-04,
+            "name": "Uranus"
+        },
+        {
+            "a": 30.098703,
+            "e": 0.006894,
+            "i": 1.77,
+            "W": 131.78,
+            "w": 264.31,
+            "M": 283.25,
+            "m": 0.5151389E-04,
+            "name": "Neptune"
+        }
+    ]
+}
+        </code>
+    </pre>
 
+    <h3 id="examples">Examples</h3>
+
+    <button onclick="Orbe.load('orbeini.json', 'orbe');">Run</button>
+    <div id="orbe">
+        <table>
+            <tr>
+                <td>Total Bodies</td>
+                <td><b>0</b> (<i>0 alive</i>)</td>
+            </tr>
+            <tr>
+                <td>Time Span</td>
+                <td><b>unknown</b></td>
+            </tr>
+            <tr>
+                <td>Time Step</td>
+                <td><b>unknown</b></td>
+            </tr>
+        </table>
     </div>
 
     <script>

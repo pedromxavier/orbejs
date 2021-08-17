@@ -238,3 +238,19 @@ label, legend, fieldset {
     border: 0;
     resize: none;
   } */
+
+nav {
+  display: flex;
+  justify-content: space-between;
+}
+  nav ul {
+    padding: 0px;
+  }
+
+  nav ul:first-child a {
+    margin-right: 10px;
+  }
+
+  nav ul:last-child a {
+    margin-left: 10px;
+  }

@@ -748,9 +748,20 @@ class Orbe {
 
     html(id) {
         let element = document.getElementById(id);
-        element.innerHTML = `\
-        <p>Total Bodies: <b>${this.N()}</b> (<i>${this.ALIVE()} alive</i>)</p>
-        <p>Time Span: <b>${this.span}</b> years</p>
-        <p>Time Lapse: <b>${this.dt}</b> years</p>`
+        element.innerHTML = `
+        <table>
+            <tr>
+                <td>Total Bodies</td>
+                <td><b>${this.N()}</b> (<i>${this.ALIVE()} alive</i>)</td>
+            </tr>
+            <tr>
+                <td>Time Span</td>
+                <td><b>${this.span}</b> years</td>
+            </tr>
+            <tr>
+                <td>Time Step</td>
+                <td><b>${this.dt}</b> years</td>
+            </tr>
+        </table>`
     }
 }
