@@ -1,34 +1,51 @@
+<!DOCTYPE html>
 <html>
 
 <head>
+    <!-- Metadata -->
+    <meta charset="UTF-8">
+    <!-- Page Title & Icon -->
+    <title>Orbe.js</title>
     <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="./static/css/style.css">
-
-    <!-- THREE.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r127/three.min.js" integrity="sha512-U4J4PbEJ2TMjFqPUSiKq7LLTHuEkPZVo0jl2fomi9pT7UAExh4xVi8KmoR7EfmyigH95aA68zpW7y3XzuoSurQ==" crossorigin="anonymous"></script>
-
     <!-- Orbe.js -->
-    <script type="text/javascript" src="./orbe.js"></script>
+    <script type="text/javascript" src="./Orbe.js"></script>
 </head>
 
 <body>
     <h1>Orbe.js</h1>
+
+    This project is a JavaScript implementation of <a href="http://www.astronomia.edu.uy/orbe/">ORBE</a>, an Orbital
+    Integrator originally written in FORTRAN.
+
+    <h2>Getting Started</h2>
+
+    Installing Orbe.js is very simple. All you have to do is copying the <b>Orbe.js</b> file into your working folder.
+
+    <pre>
+        <code class="language-html">&lt;div id="orbe"&gt;&lt;/div&gt;
+
+&lt;script type="text/javascript" src="./Orbe.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+    // Orbe.load(JSON_PATH, ELEMENT_ID);
+    Orbe.load('orbedata.json', 'orbe');
+&lt;/script&gt;</code>
+    </pre>
+
     <div id="orbe">
 
     </div>
 </body>
+<link rel="stylesheet" href="/highlight/styles/default.min.css">
+<script src="/highlight/highlight.min.js"></script>
+<script>
+    hljs.highlightAll();
+</script>
 <script type="text/javascript">
-    
     // Load from JSON
     Orbe.load('orbeini.json', 'orbe');
-    
-    // function callback(data) {
-    //     console.log(`Frame #${data.frame}`);
-    //     console.log(data.elements);
-    //     return data.frame <= 2;
-    // }
-    // orbe.run(callback);
 </script>
 
 </html>

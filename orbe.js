@@ -5,14 +5,12 @@
 * inspired by ORBE from Tabare Gallardo @ www.astronomia.edu.uy/orbe
 */
 
-
-// Check for THREE.js & ORBELIB.js
-if (THREE === undefined) {
-    throw `Error: THREE.js is not available.`;
-}
-
-// I/O Functions
-function loadJson(path, callback) {
+function loadJSON(path, callback) {
+    /**
+    * * Asynchronous JSON loading.
+    * *
+    * * 
+    **/
     var rawFile = new XMLHttpRequest();
     rawFile.overrideMimeType("application/json");
     rawFile.open("GET", path, true);
@@ -22,6 +20,111 @@ function loadJson(path, callback) {
         }
     }
     rawFile.send(null);
+}
+
+class Vector3 {
+    /**
+    * * Creating a new vector object is very expensive.
+    * *
+    * *
+    **/
+    static new(x = 0.0, y = 0.0, z = 0.0) {
+        return new Float32Array([x, y, z]);
+    }
+
+    static cache(key, x = 0.0, y = 0.0, z = 0.0) {
+        if (this.__cache__ === undefined) {
+            this.__cache__ = {};
+        }
+        return this.__cache__[key] = this.new(x, y, z);
+    }
+
+    static load(key) {
+        return this.__cache__[key];
+    }
+
+    static set($w, x = 0.0, y = 0.0, z = 0.0) {
+        $w[0] = x;
+        $w[1] = y;
+        $w[2] = z;
+        return $w;
+    }
+
+    static copy($w, $u) {
+        $w[0] = $u[0];
+        $w[1] = $u[1];
+        $w[2] = $u[2];
+        return $w;
+    }
+
+    static add($w, $u, $v) {
+        $w[0] = $u[0] + $v[0];
+        $w[1] = $u[1] + $v[1];
+        $w[2] = $u[2] + $v[2];
+        return $w;
+    }
+
+    static sub($w, $u, $v) {
+        $w[0] = $u[0] - $v[0];
+        $w[1] = $u[1] - $v[1];
+        $w[2] = $u[2] - $v[2];
+        return $w;
+    }
+
+    static mul($w, $u, $v) {
+        $w[0] = $u[0] * $v[0];
+        $w[1] = $u[1] * $v[1];
+        $w[2] = $u[2] * $v[2];
+        return $w;
+    }
+
+    static div($w, $u, $v) {
+        $w[0] = $u[0] / $v[0];
+        $w[1] = $u[1] / $v[1];
+        $w[2] = $u[2] / $v[2];
+        return $w;
+    }
+
+    static dot($u, $v) {
+        return $u[0] * $v[0] + $u[1] * $v[1] + $u[2] * $v[2];
+    }
+
+    static cross($w, $u, $v) {
+        $w[0] = $u[1] * $v[2] - $u[2] * $v[1];
+        $w[1] = $u[2] * $v[0] - $u[0] * $v[2];
+        $w[2] = $u[0] * $v[1] - $u[1] * $v[0];
+        return $w;
+    }
+
+    static span($w, a, $u, b, $v) {
+        $w[0] = a * $u[0] + b * $v[0];
+        $w[1] = a * $u[1] + b * $v[1];
+        $w[2] = a * $u[2] + b * $v[2];
+        return $w;
+    }
+
+    static scale($w, a, $u) {
+        $w[0] = a * $u[0]
+        $w[1] = a * $u[1]
+        $w[2] = a * $u[2]
+        return $w;
+    }
+
+    static norm($u) {
+        return Math.sqrt($u[0] * $u[0] + $u[1] * $u[1] + $u[2] * $u[2]);
+    }
+
+    static norm2($u) {
+        return $u[0] * $u[0] + $u[1] * $u[1] + $u[2] * $u[2];
+    }
+
+    static unit($w, $u) {
+        let u = this.norm($u);
+        $w[0] = $u[0] / u
+        $w[1] = $u[1] / u
+        $w[2] = $u[2] / u
+        return $w; 
+    }
 }
 
 // Math Constants
@@ -42,15 +145,14 @@ function degrees(x) {
     return x * 180.0 / PI;
 }
 
-function SIGN(A, B) {
-    // FORTRAN SIGN(A, B)
-    return (B >= 0.0) ? Math.abs(A) : -Math.abs(A);
+function sign(x, y) {
+    return (y >= 0.0) ? Math.abs(x) : -Math.abs(x);
 }
 
-// Orbe Constants
-const YEAR_DAYS = 365.25; // Days in a year
-const GAU = 0.01720209895;
-const GM = Math.pow(GAU * YEAR_DAYS, 2);
+/** Orbe Constants
+* * GM: (GAU * DAYS)^{2}
+**/
+const GM = Math.pow(0.01720209895 * 365.25, 2);
 
 class Body {
     /*
@@ -100,9 +202,9 @@ class Body {
         this.T = null;
 
         // ? Position and Velocity (vectors)
-        this.$x = new THREE.Vector3(); // ? [POS]
-        this.$v = new THREE.Vector3(); // ? [VEL]
-        this.$f = new THREE.Vector3(); // ? [FIND]
+        this.$x = Vector3.new(); // ? [POS]
+        this.$v = Vector3.new(); // ? [VEL]
+        this.$f = Vector3.new(); // ? [FIND]
 
         this.alive = true;
     }
@@ -172,6 +274,8 @@ class Body {
 class Orbe {
 
     constructor(data) {
+        console.time('Orbe-init');
+
         // From data object
         this.mass = data.mass;
         this.span = data.span;
@@ -212,6 +316,20 @@ class Orbe {
         this.dt = null;
         this.time = 0.0;
         this.step = 1E-5;     
+
+        // ! Cache Auxiliary Vectors
+        Vector3.cache('c');
+        Vector3.cache('s');
+        Vector3.cache('f');
+        Vector3.cache('n');
+        Vector3.cache('p');
+        Vector3.cache('q');
+        Vector3.cache('u');
+        Vector3.cache('v');
+        Vector3.cache('x');
+        Vector3.cache('y');
+        Vector3.cache('z');
+        Vector3.cache('w');
 
         // Initialize Simulation
         for (let body of this.bodies) {
@@ -255,6 +373,10 @@ class Orbe {
 
         // ! Integrate Backwards
         if (this.span < 0.0) this.dt = -this.dt;
+
+        // Supposed to take about ~4ms
+        console.timeEnd('Orbe-init');
+        // console.log(this);
     }
 
     N() {
@@ -267,7 +389,7 @@ class Orbe {
 
     // Main routines
     static load(path, element = null, callback = null) {
-        loadJson(path, (data) => {
+        loadJSON(path, (data) => {
             let orbe = new this(data);
 
             if (element !== null) orbe.html(element);
@@ -306,7 +428,7 @@ class Orbe {
             this.Perturbations();
             this.KeplerMotion();
 
-            if (Math.abs(time - SIGN(this.lapse, this.dt)) < 1E-5) {
+            if (Math.abs(time - sign(this.lapse, this.dt)) < 1E-5) {
                 for (let body of this.bodies) {
                     if (body.alive) this.ComputeElements(body);
                 }
@@ -314,7 +436,7 @@ class Orbe {
                 time = this.dt;
                 continue;
             }
-            if (((this.span - t) * SIGN(1.0, this.dt) > 0.0)) {
+            if (((this.span - t) * sign(1.0, this.dt) > 0.0)) {
                 time += this.dt;
                 continue;
             } else {
@@ -329,46 +451,45 @@ class Orbe {
         */
         // ! Orbital Elements
         var a, e, i, w, M, n;
-        // ! Position & Velocity
-        var $x, $v;
         // ! Other parameters
-        var E, T, A, B;
-        // ! Other Vectors
+        var E, T, A, B, C, S;
+        // ! Vectors
         var $c, $s, $p, $q;
 
         [a, e, i, w, M, n] = [body.a, body.e, body.i, body.w, body.M, body.n];
         
-        E = this.SolveKepler(e, M);
+        E = this.SolveKeplerII(M, e);
         T = 2.0 * Math.atan(Math.sqrt((1.0 + e) / (1.0 - e)) * Math.tan(E / 2.0));
 
-        A = body.a * (1.0 - e * Math.cos(E));
-        B = body.n * body.a / Math.sqrt(1.0 - e * e);
+        A = a * (1.0 - e * Math.cos(E));
+        B = n * a / Math.sqrt(1.0 - e * e);
 
-        $c = new THREE.Vector3(Math.cos(n), Math.cos(i), Math.cos(w));
-        $s = new THREE.Vector3(Math.sin(n), Math.sin(i), Math.sin(w));
+        C = Math.cos(T);
+        S = Math.sin(T);
 
-        $p = new THREE.Vector3(
-            $c.x * $c.z - $s.x * $c.y * $s.z,
-            $s.x * $c.z + $c.x * $c.y * $s.z,
-            $s.y * $s.z,
+        $c = Vector3.load('c');
+        $s = Vector3.load('s');
+
+        Vector3.set($c, Math.cos(n), Math.cos(i), Math.cos(w));
+        Vector3.set($s, Math.sin(n), Math.sin(i), Math.sin(w));
+
+        $p = Vector3.load('p');
+        $q = Vector3.load('q');
+
+        Vector3.set($p,
+            $c[0] * $c[2] - $s[0] * $c[1] * $s[2],
+            $s[0] * $c[2] + $c[0] * $c[1] * $s[2],
+            $s[1] * $s[2],
         )
-        $q = new THREE.Vector3(
-            -$c.x * $s.z - $s.x * $c.y * $c.z,
-            -$s.x * $s.z + $c.x * $c.y * $c.z,
-            $s.y * $c.z
+        Vector3.set($q,
+            -$c[0] * $s[2] - $s[0] * $c[1] * $c[2],
+            -$s[0] * $s[2] + $c[0] * $c[1] * $c[2],
+            $s[1] * $c[2]
         )
 
         // POSITION AND VELOCITY
-        $x = new THREE.Vector3();
-        $x.addScaledVector($p, A * Math.cos(T));
-        $x.addScaledVector($q, A * Math.sin(T));
-
-        $v = new THREE.Vector3();
-        $v.addScaledVector($p, -B * Math.sin(T));
-        $v.addScaledVector($q, B * (e + Math.cos(T)));
-
-        body.$x.copy($x);
-        body.$v.copy($v);
+        Vector3.span(body.$x, A * C, $p, A * S, $q);
+        Vector3.span(body.$v, -B * S, $p, B * (e + C), $q);
     }
 
     ComputeElements(body) {
@@ -376,53 +497,51 @@ class Orbe {
         ** 
         */
         // ! Orbital Elements
-        var a, e, i, w, M;
+        var a, e, w, M;
         // ! Position & Velocity
         var $x, $v;
         // ! Other Parameters
-        var c, s, u, v, GMM;
+        var c, s, GMM;
         // ! Other Vectors
         var $z, $w, $n, $u;
 
-        $x = body.$x.clone();
-        $v = body.$v.clone();
+        $x = Vector3.load('x');
+        $v = Vector3.load('v');
+        Vector3.copy($x, body.$x);
+        Vector3.copy($v, body.$v);
+        
+        $z = Vector3.load('z');
+        Vector3.cross($z, $x, $v);
+        $w = Vector3.load('w');
+        Vector3.set($w, $z[0], $z[1], 0.0);
 
-        $z = new THREE.Vector3();
-        $z.crossVectors($x, $v);
-        $w = new THREE.Vector3($z.x, $z.y, 0.0);
-
-        c = arg(Math.atan2($z.x, -$z.y));
-        s = Math.atan2($w.length(), $z.z);
-
-        i = s;
+        c = arg(Math.atan2($z[0], -$z[1]));
+        s = Math.atan2(Vector3.norm($w), $z[2]);
 
         GMM = this.GM0 + body.m;
 
-        $n = new THREE.Vector3();
-        $n.crossVectors($v, $z);
-        $n.divideScalar(GMM);
+        $n = Vector3.load('n');
+        Vector3.cross($n, $v, $z);
+        Vector3.scale($n, 1.0/GMM, $n);
 
-        $u = $x.clone();
-        $u.normalize();
-
-        $n.sub($u);
+        $u = Vector3.load('u');
+        Vector3.unit($u, $x);
+        
+        Vector3.sub($n, $n, $u);
 
         if (Math.sin(s) < 1E-12) {
             // ! If Inclination is 0 or 180 deg
             // ! this case w is the longitude of perihelion
             c = 0.0;
-            w = arg(Math.atan2($n.y, $n.x));
+            w = arg(Math.atan2($n[1], $n[0]));
         } else {
             w = arg(Math.atan2(
-                $n.z / Math.sin(s),
-                $n.x * Math.cos(c) + $n.y * Math.sin(c)
+                $n[2] / Math.sin(s),
+                $n[0] * Math.cos(c) + $n[1] * Math.sin(c)
             ));
         }
 
-        u = 2.0 / $x.length();
-        v = $v.lengthSq() / GMM;
-
-        a = 1.0 / (u - v);
+        a = 1.0 / ((2.0 / Vector3.norm($x)) - (Vector3.norm2($v) / GMM));
 
         if (a < 0.0 || a > 1E+5) {
             body.alive = false;
@@ -432,24 +551,51 @@ class Orbe {
 
         if (a > 0.0) {
             e = arg(Math.atan2(
-                $x.dot($v) / Math.sqrt(a * GMM),
-                1.0 - $x.length() / a
+                Vector3.dot($x, $v) / Math.sqrt(a * GMM),
+                1.0 - Vector3.norm($x) / a
             ));
 
             // Kepler's Equation
-            M = arg(e - $n.length() * Math.sin(e));
+            M = arg(e - Vector3.norm($n) * Math.sin(e));
         } else {
-            e = $n.length();
+            e = Vector3.norm($n);
         }
 
         Object.assign(body, {
             a: a,
             e: e,
-            i: i,
+            i: s,
             W: c,
             w: w,
             M: M
         })
+    }
+
+    KeplerMotion() {
+        // * Advance Keplerian Motion Half Step
+        // ! Orbital Elements
+        var a, dt;
+
+        dt = 0.5 * this.dt;
+
+        for (let body of this.bodies) {
+            // If the i-th element was eliminated
+            if (!body.alive) continue;
+
+            a = 1.0 / ((2.0 / Vector3.norm(body.$x)) - (Vector3.norm2(body.$v) / (this.GM0 + body.m)));
+
+            if (a < 0.0 || a > 1E+5) {
+                // Eliminate the body
+                body.alive = false;
+                console.log(`Body Eliminated: ${body.name}`);
+                continue;
+            }
+
+            this.RelativeMotion(body, dt);
+
+            // ! Update parameter 'a'
+            body.a = a;
+        }
     }
 
     Perturbations() {
@@ -461,15 +607,16 @@ class Orbe {
             // If the i-th element was eliminated
             if (!body.alive) continue;
 
+            
             body.$f.copy($x);
             body.$f.multiplyScalar(body.m / Math.pow(body.$x.length(), 3.0));
         }
 
         var $dx, $p, $q;
 
-        $dx = new THREE.Vector3();
-        $p = new THREE.Vector3();
-        $p = new THREE.Vector3();
+        $dx = Vector3.new();
+        $p = Vector3.new();
+        $q = Vector3.new();
 
         var N = this.N();
 
@@ -506,96 +653,79 @@ class Orbe {
         }
     }
 
-    KeplerMotion() {
-        // * Advance Keplerian Motion Half Step
-        // ! Orbital Elements
-        var a;
+    RelativeMotion(body, dt) {
+        var GGM, r, a, n;
+        // ! Vectors
+        var $x, $v;
+        // ! Parameters
+        var x, s, c, p;
+        // ! Coefficients
+        var f, g, F, G;
 
-        var dt;
+        $x = Vector3.load('x');
+        $v = Vector3.load('v');
+        Vector3.copy($x, body.$x);
+        Vector3.copy($v, body.$v);
 
-        dt = 0.5 * this.dt;
+        GGM = this.GM0() + body.m;
 
-        for (let body of this.bodies) {
-            // If the i-th element was eliminated
-            if (!body.alive) continue;
+        r = Vector.norm($x);
+        a = 1.0 / ((2.0 / r) - Vector.norm2($v) / GGM);
+        
+        n = Math.sqrt(GGM / Math.pow(a, 3));
 
-            a = 1.0 / ((2.0 / body.$x.length()) - (body.$v.lengthSq() / (this.GM0 + body.m)));
+        s = Vector3.dot($x, $v) / (n * Math.pow(a, 2));
+        c = 1.0 - (r / a);
 
-            if (a < 0.0 || a > 1E+5) {
-                // Eliminate the body
-                body.alive = false;
-                console.log(`Body Eliminated: ${body.name}`);
-                continue;
-            }
+        [x, s, c, p] = this.SolveKelperI(s, c, n, dt);
 
-            // this.MovRel(body);
+        f = 1.0 + (a / r) * (c - 1.0);
+        g = dt + (s - x) / n;
 
-            // ! Update parameter 'a'
-            body.a = a;
-        }
-    }
+        F = -a * n * s / (r * p);
+        G = 1.0 + (c - 1.0) / p;
 
-    MovRel(body) {
-        let GGM = this.GM0() + body.m;
-
-        let r = Vector.norm(body.$x);
-
-        let u = 2.0 / r;
-        let v = Vector.norm2(body.$v) / GGM;
-
-        let a = 1.0 / (u - v);
-        let n = Math.sqrt(GGM / Math.pow(a, 3));
-
-        let s = Vector.dot(body.$x, body.$v) / (n * Math.pow(a, 2));
-        let c = 1.0 - (r / a);
+        Vector3.span(body.$x, f, $x, g, $v);
+        Vector3.span(body.$v, F, $x, G, $v);
 
         body.e = s * s + c * c;
-
-        let dx, fp;
-        [dx, s, c, fp] = this.KeplerRel(s, c, n);
-
-        let f = 1.0 + (a / r) * (c - 1.0);
-        let g = this.dt + (s - dx) / n;
-
-        let F = -a * n * s / (r * fp);
-        let G = 1.0 + (c - 1.0) / fp;
-
-        body.$x = Vector.add(
-            Vector.mul(body.$x, f),
-            Vector.mul(body.$v, g)
-        );
-        body.$v = Vector.add(
-            Vector.mul(body.$x, F),
-            Vector.mul(body.$v, G)
-        );
     }
 
-    KeplerRel(s_, c_, n_) {
+    SolveKeplerI(S, C, n, dt) {
         // Solve Kepler Equation
-        let x0 = n_ * this.dt;
-        let dx, s, c, fp = [0.0, 0.0, 0.0];
-        let x = x0;
+        // ! Solution Steps
+        var x, x0, dx;
+        // ! Other Parameters
+        var s, c, f;
+        // ! Vector
+        var $f;
+
+        $f = Vector3.load('f');
+
+        x0 = n * dt;
+        x = x0;
+
         do {
             s = Math.sin(x);
             c = Math.cos(x);
 
-            let f = x - c_ * s + s_ * (1 - c) - x0;
+            $f[0] = 1.0 - C * c + S * s;
+            $f[1] = C * s + S * c;
+            $f[2] = C * c - S * s;
 
-            fp[0] = 1.0 - c_ * c + s_ * s;
-            fp[1] = c_ * s + s_ * c;
-            fp[2] = c_ * c - s_ * s;
+            f = x - x0 - C * s + S * (1.0 - c);
 
-            dx = -f / fp[0];
-            dx = -f / (fp[0] + dx * (fp[1] / 2.0));
-            dx = -f / (fp[0] + dx * (fp[1] / 2.0 + dx * fp[2] / 6.0));
+            dx = -f / ($f[0]);
+            dx = -f / ($f[0] + dx * ($f[1] / 2.0));
+            dx = -f / ($f[0] + dx * ($f[1] / 2.0 + dx * $f[2] / 6.0));
 
             x += dx;
-        } while (Math.abs(dx) > this.TOL(13));
+        } while (Math.abs(dx) > 1E-13);
 
-        return [dx, s, c, fp[0]];
+        return [dx, s, c, $f[0]];
     }
 
-    SolveKepler(M, e) {
+    SolveKeplerII(M, e) {
         var E, Ei, s, c, u, v, w;
         
         M = arg(M);    
