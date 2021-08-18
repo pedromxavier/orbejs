@@ -13,6 +13,10 @@
     <!-- Syntax Highlight--->
     <link rel="stylesheet" href="./highlight/default.min.css">
     <script src="./highlight/highlight.min.js"></script>
+    <!-- MathJax TeX -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
     <!-- Orbe.js -->
     <script src="./src/Orbe.js"></script>
 </head>
@@ -20,23 +24,29 @@
 <body>
     <nav>
         <ul>
-            <a href="https://pedromxavier.github.io/orbejs/">Home</a>
+            <li><a href="https://pedromxavier.github.io/orbejs/">Home</a></li>
         </ul>
         <ul>
-            <a href="https://github.com/pedromxavier/orbejs/">GitHub</a>
-            <a href="#examples">Examples</a>
+            <li><a href="https://github.com/pedromxavier/orbejs/">GitHub</a></li>
+            <li><a href="#examples">Examples</a></li>
         </ul>
     </nav>
 
-    <h1>Orbe.js<img style="vertical-align:middle;" src="./favicon.ico"></h1>
+    <h1>Orbe.js<img class="logo" src="./favicon.ico"></h1>
 
-    <p>This project is a JavaScript implementation of <a href="http://www.astronomia.edu.uy/orbe/">ORBE</a>, an Orbital Integrator originally written in FORTRAN.</p>
+    <p>This project is a JavaScript implementation of <a href="http://www.astronomia.edu.uy/orbe/">ORBE</a>, an Orbital
+        Integrator originally written in FORTRAN.</p>
 
     <h2>Getting Started</h2>
 
     <h3>Installation</h3>
-    <p>Installing Orbe.js is very simple. All you have to do is copying the <b>Orbe.js</b> file to your working folder. It is available in the <b>/src</b> folder at the project's repository.</p>
+    <p>Installing Orbe.js is very simple. All you have to do is copying the <b>Orbe.js</b> file to your working folder.
+        It is available in the <b>/src</b> folder at the project's repository.</p>
 
+    <h3>Running</h3>
+    When including the <b>Orbe.js</b> script, the <code>Orbe</code> class becomes available. There are two main ways to run a simulation:
+
+    <h4>Loading JSON file</h4>
     <pre>
         <code class="language-html">
 &lt;div id="orbe"&gt;&lt;/div&gt;
@@ -49,6 +59,19 @@
     </pre>
 
     <h3>Data Patterns</h3>
+    <ul>
+        <li>\(a \in [0, \infty)\): Semimajor axis of the ellipse in astronomical units.</li>
+        <li>\(e \in [0, 1]\): Eccentricity of the ellipse. \(0\) for a circle.</li>
+        <li>\(i \in [0^\circ, 180^\circ]\): Inclination of the orbit in degrees. \(0^\circ\) if it's coincident with
+            plane \(xy\) or ecliptic, \(90^\circ\) perpendicular and \(180^\circ\) retrograde motion.</li>
+        <li>\(W \in [0^\circ, 360^\circ]\): Longitude of the ascending node in degrees. \(0^\circ\) corresponds to Aries
+            or \(x\)-axis, usually written as \(\Omega\).</li>
+        <li>\(w \in [0^\circ, 360^\circ]\): Argument of the perihelion in degrees. \(0^\circ\) corresponds to the
+            direction of the node, usually written as \(\omega\).</li>
+        <li>\(M \in [0^\circ, 360^\circ]\): Mean anomaly in degrees. \(0^\circ\) corresponds to perihelion,
+            \(180^\circ\) to aphelion.</li>
+        <li>\(m \in [0, \infty)\): Mass in solar masses.</li>
+    </ul>
     <pre>
         <code class="language-javascript">
 var data = {
@@ -86,77 +109,38 @@ var data = {
             "m": 0.3040432E-05,
             "name": "Earth"
         },
-        {
-            "a": 1.523674,
-            "e": 0.093437,
-            "i": 1.85,
-            "W": 49.54,
-            "w": 286.56,
-            "M": 226.11,
-            "m": 0.3227155E-06,
-            "name": "Mars"
-        },
-        {
-            "a": 5.202040,
-            "e": 0.048933,
-            "i": 1.30,
-            "W": 100.51,
-            "w": 274.18,
-            "M": 223.70,
-            "m": 0.9547919E-03,
-            "name": "Jupiter"
-        },
-        {
-            "a": 9.551249,
-            "e": 0.054508,
-            "i": 2.49,
-            "W": 113.63,
-            "w": 340.06,
-            "M": 38.63,
-            "m": 0.2858859E-03,
-            "name": "Saturn"
-        },
-        {
-            "a": 19.176263,
-            "e": 0.048094,
-            "i": 0.77,
-            "W": 73.96,
-            "w": 98.52,
-            "M": 169.39,
-            "m": 0.4366244E-04,
-            "name": "Uranus"
-        },
-        {
-            "a": 30.098703,
-            "e": 0.006894,
-            "i": 1.77,
-            "W": 131.78,
-            "w": 264.31,
-            "M": 283.25,
-            "m": 0.5151389E-04,
-            "name": "Neptune"
-        }
+        ...
     ]
 }
         </code>
     </pre>
 
     <h3 id="examples">Examples</h3>
+    <script>
+        function runOrbe() {
+            function callback(frame) {
+                var el_total = document.getElementById('orbe-total');
+                var el_span = document.getElementById('orbe-span');
+                var el_time = document.getElementById('orbe-time');
+            }
 
-    <button onclick="Orbe.load('orbeini.json', 'orbe');">Run</button>
+
+        }
+    </script>
+    <button onclick="runOrbe();">Run</button>
     <div id="orbe">
         <table>
             <tr>
                 <td>Total Bodies</td>
-                <td><b>0</b> (<i>0 alive</i>)</td>
+                <td><b id="orbe-total">0</b> (<i><span id="orbe-alive">0</span> alive</i>)</td>
             </tr>
             <tr>
                 <td>Time Span</td>
-                <td><b>unknown</b></td>
+                <td><b id="orbe-span">unknown</b></td>
             </tr>
             <tr>
-                <td>Time Step</td>
-                <td><b>unknown</b></td>
+                <td>Time Elapsed</td>
+                <td><b id="orbe-time">unknown</b> years</td>
             </tr>
         </table>
     </div>
@@ -165,10 +149,4 @@ var data = {
         hljs.highlightAll();
     </script>
 </body>
-
-<script>
-    // Load from JSON
-    // Orbe.load('orbeini.json', 'orbe');
-</script>
-
 </html>

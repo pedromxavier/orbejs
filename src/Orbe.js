@@ -123,7 +123,7 @@ class Vector3 {
         $w[0] = $u[0] / u
         $w[1] = $u[1] / u
         $w[2] = $u[2] / u
-        return $w; 
+        return $w;
     }
 }
 
@@ -211,14 +211,14 @@ class Body {
 
     frame() {
         return {
-            a: this.a,
-            e: this.e,
+            //    a: this.a,
+            //    e: this.e,
             i: this.i,
-            W: this.W,
-            w: this.w,
-            M: this.M,
+            //    W: this.W,
+            //    w: this.w,
+            //    M: this.M,
             x: this.$x,
-            v: this.$v,
+            //    v: this.$v,
         }
     }
 
@@ -315,12 +315,13 @@ class Orbe {
         // Time Control Quantities
         this.dt = null;
         this.time = 0.0;
-        this.step = 1E-5;     
+        this.step = 1E-5;
 
         // ! Cache Auxiliary Vectors
         Vector3.cache('c');
         Vector3.cache('s');
         Vector3.cache('f');
+        Vector3.cache('d');
         Vector3.cache('n');
         Vector3.cache('p');
         Vector3.cache('q');
@@ -392,15 +393,22 @@ class Orbe {
         loadJSON(path, (data) => {
             let orbe = new this(data);
 
-            if (element !== null) orbe.html(element);
-
-            if (callback !== null) orbe.run(callback);
+            orbe.run(element, callback);
         });
     }
 
-    run(callback) {
-        // Initialize parameters
-        this.init();
+    run(element, callback) {
+        if (element !== null) this.html(element);
+
+        if (callback == undefined) {
+            callback = ((frame) => {
+                if (element !== null)
+                    this.html(element);
+                else
+                    console.log(frame.bodies);
+                return true;
+            })
+        }
 
         if (typeof callback === 'function') {
             const frames = this.render();
@@ -414,34 +422,36 @@ class Orbe {
         }
     }
 
+    advance() {
+        // * Advance Integration
+        this.KeplerMotion(this.dt / 2.0);
+        this.Perturbations(this.dt);
+        this.KeplerMotion(this.dt / 2.0);
+        // * Update Orbital E   
+    }
+
+    * infinite_render() {
+        while (true) {
+            this.advance();
+        }
+    }
+
+    * finite_render() {
+        var frame = 0;
+        while (time < this.span) {
+            this.advance();
+            yield {
+                frame: frame++,
+                bodies: this.bodies.filter((body) => (body.alive))
+            }
+        }
+    }
+
     * render() {
         /* A frame is intended to be a list of elements and their information.
         **
         */
-        var time = 0.0; // ? [TGRID]
-        var frame = 0;  // ? [CTIEMPO]
-        while (true) {
-            let t = frame * this.dt;
-
-            // Advance Integration
-            this.KeplerMotion();
-            this.Perturbations();
-            this.KeplerMotion();
-
-            if (Math.abs(time - sign(this.lapse, this.dt)) < 1E-5) {
-                for (let body of this.bodies) {
-                    if (body.alive) this.ComputeElements(body);
-                }
-                yield { frame: frame++, bodies: this.bodies.map((body) => (body.frame())) };
-                time = this.dt;
-                continue;
-            }
-            if (((this.span - t) * sign(1.0, this.dt) > 0.0)) {
-                time += this.dt;
-                continue;
-            } else {
-                break;
-            }
+        
         }
     }
 
@@ -457,7 +467,7 @@ class Orbe {
         var $c, $s, $p, $q;
 
         [a, e, i, w, M, n] = [body.a, body.e, body.i, body.w, body.M, body.n];
-        
+
         E = this.SolveKeplerII(M, e);
         T = 2.0 * Math.atan(Math.sqrt((1.0 + e) / (1.0 - e)) * Math.tan(E / 2.0));
 
@@ -509,7 +519,7 @@ class Orbe {
         $v = Vector3.load('v');
         Vector3.copy($x, body.$x);
         Vector3.copy($v, body.$v);
-        
+
         $z = Vector3.load('z');
         Vector3.cross($z, $x, $v);
         $w = Vector3.load('w');
@@ -522,11 +532,11 @@ class Orbe {
 
         $n = Vector3.load('n');
         Vector3.cross($n, $v, $z);
-        Vector3.scale($n, 1.0/GMM, $n);
+        Vector3.scale($n, 1.0 / GMM, $n);
 
         $u = Vector3.load('u');
         Vector3.unit($u, $x);
-        
+
         Vector3.sub($n, $n, $u);
 
         if (Math.sin(s) < 1E-12) {
@@ -571,12 +581,10 @@ class Orbe {
         })
     }
 
-    KeplerMotion() {
+    KeplerMotion(dt) {
         // * Advance Keplerian Motion Half Step
         // ! Orbital Elements
-        var a, dt;
-
-        dt = 0.5 * this.dt;
+        var a;
 
         for (let body of this.bodies) {
             // If the i-th element was eliminated
@@ -587,38 +595,39 @@ class Orbe {
             if (a < 0.0 || a > 1E+5) {
                 // Eliminate the body
                 body.alive = false;
-                console.log(`Body Eliminated: ${body.name}`);
                 continue;
             }
 
             this.RelativeMotion(body, dt);
 
-            // ! Update parameter 'a'
+            // ! Update parameter semimajor axis
             body.a = a;
         }
     }
 
-    Perturbations() {
+    Perturbations(dt) {
         /* ! Compute Mutual Perturbations in one step
         */
+        // ! Parameters
+        var N;
+        // ! Interacting bodies
         var body_i, body_j;
+        // ! Vectors
+        var $d, $p, $q;
+
+        N = this.N();
+
 
         for (let body of this.bodies) {
             // If the i-th element was eliminated
             if (!body.alive) continue;
 
-            
-            body.$f.copy($x);
-            body.$f.multiplyScalar(body.m / Math.pow(body.$x.length(), 3.0));
+            Vector3.scale(body.$f, body.m / Math.pow(Vector3.norm(body.$x), 3.0), body.$x);
         }
 
-        var $dx, $p, $q;
-
-        $dx = Vector3.new();
-        $p = Vector3.new();
-        $q = Vector3.new();
-
-        var N = this.N();
+        $d = Vector3.load('d');
+        $p = Vector3.load('p');
+        $q = Vector3.load('q');
 
         for (let i = 0; i < N; i++) {
             // Retrieve the i-th element
@@ -635,20 +644,14 @@ class Orbe {
                 if (!body_j.alive) continue;
 
                 // Computations
-                $dx.subVectors(body_i.$x, body_j.$x);
-                $dx.divideScalar(Math.pow($dx.lengthSq(), 1.5));
+                Vector3.sub($d, body_i.$x, body_j.$x);
+                Vector3.scale($d, Math.pow(Vector3.norm2($d), -1.5), $d);
 
-                $p.setScalar(0.0);
-                $q.setScalar(0.0);
+                Vector3.span($p, body_i.m, $d, -1.0, body_i.$f);
+                Vector3.span($q, -body_j.m, $d, -1.0, body_j.$f);
 
-                $p.addScaledVector($dx, +body_i.m);
-                $q.addScaledVector($dx, -body_j.m);
-
-                $p.sub(body_i.$f);
-                $q.sub(body_j.$f);
-
-                body_j.$v.addScaledVector($p, this.dt);
-                body_i.$v.addScaledVector($q, this.dt);
+                Vector3.span(body_i.$v, 1.0, body_i.$v, dt, $q);
+                Vector3.span(body_j.$v, 1.0, body_j.$v, dt, $p);
             }
         }
     }
@@ -667,17 +670,17 @@ class Orbe {
         Vector3.copy($x, body.$x);
         Vector3.copy($v, body.$v);
 
-        GGM = this.GM0() + body.m;
+        GGM = this.GM0 + body.m;
 
-        r = Vector.norm($x);
-        a = 1.0 / ((2.0 / r) - Vector.norm2($v) / GGM);
-        
+        r = Vector3.norm($x);
+        a = 1.0 / ((2.0 / r) - Vector3.norm2($v) / GGM);
+
         n = Math.sqrt(GGM / Math.pow(a, 3));
 
         s = Vector3.dot($x, $v) / (n * Math.pow(a, 2));
         c = 1.0 - (r / a);
 
-        [x, s, c, p] = this.SolveKelperI(s, c, n, dt);
+        [x, s, c, p] = this.SolveKeplerI(s, c, n, dt);
 
         f = 1.0 + (a / r) * (c - 1.0);
         g = dt + (s - x) / n;
@@ -727,29 +730,37 @@ class Orbe {
 
     SolveKeplerII(M, e) {
         var E, Ei, s, c, u, v, w;
-        
-        M = arg(M);    
+
+        M = arg(M);
         E = M;
         do {
             Ei = E;
-    
+
             s = Math.sin(Ei);
             c = Math.cos(Ei);
-    
+
             u = (Ei - e * s - M) / (1.0 - e * c);
             v = (Ei - u);
             w = v / (1 - u * e * s);
-    
-            E = (v + w) / 2.0;      
+
+            E = (v + w) / 2.0;
         } while (Math.abs(E - Ei) > 1E-14);
-    
+
         return E;
     }
 
     html(id) {
         let element = document.getElementById(id);
         element.innerHTML = `
+        ${this.html_header()}
+        ${this.html_body()}
+        `;
+    }
+
+    html_header() {
+        return `
         <table>
+            <tbody>
             <tr>
                 <td>Total Bodies</td>
                 <td><b>${this.N()}</b> (<i>${this.ALIVE()} alive</i>)</td>
@@ -762,6 +773,33 @@ class Orbe {
                 <td>Time Step</td>
                 <td><b>${this.dt}</b> years</td>
             </tr>
+            </tbody>
         </table>`
+    }
+
+    html_body() {
+        return `<table><tbody>
+                <tr>
+                    <th><b>body</b></th>
+                    <th><b>a</b> (AU)</th>
+                    <th><b>e</b></th>
+                    <th><b>i</b> (rad)</th>
+                    <th><b>W</b> (rad)</th>
+                    <th><b>w</b> (rad)</th>
+                    <th><b>M</b> (rad)</th>
+                </tr>
+                ${this.bodies.map((body) => {
+            return `<tr>
+                        <td>${body.name}</td>
+                        <td>${body.a.toFixed(3)}</td>
+                        <td>${body.e.toFixed(3)}</td>
+                        <td>${body.i.toFixed(3)}</td>
+                        <td>${body.W.toFixed(3)}</td>
+                        <td>${body.w.toFixed(3)}</td>
+                        <td>${body.M.toFixed(3)}</td>
+                    </tr>`
+        }).join('\n')}
+                </tbody></table>`
+
     }
 }
